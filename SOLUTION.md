@@ -1,6 +1,6 @@
-**Name:** <your name>
-**Date:** <date>
-**Actual time spent:** <running total>
+**Name:** IFEANYI AGU
+**Date:** 12/09/2026
+**Actual time spent:** 2hrs 45mins
 
 ## 1. What I completed
 
@@ -9,12 +9,26 @@
 | 1 — Course list | done | `evidence/task-1-ui.png`, `evidence/task-1-network-header.png`,`evidence/task-1-network-response.png`, |
 | 2 — Authentication | done | `evidence/task-2-signedout.png`, `evidence/task-2-signedin.png`, `evidence/task-2-network-header.png`, task-2-network-response.png`  |
 | 3 — Withdrawal form | done | `evidence/task-3-validation.png`, `evidence/task-3-server-error.png`, `evidence/task-3-success.png`, `evidence/task-3-network.png` |
+| 4 — PHP defects | Attempted but not completed  | 
+| 5 — Database | done | `answers/task-5.md` |
+| 6 — Infrastructure | done | `answers/task-6.md` |
+| 7 — Python | not attempted | |
+| 8 — Documentation | done | `SOLUTION.md` |
 
 ## 4. Specific questions
 
 **Task 1:** I used the API response’s `previewExpiresInSeconds` as the React Query `staleTime` and refetch interval.  I chose automatic refetch because the endpoint explicitly provides an expiry value.
 
 **Task 3:** `payoutReference` is generated once per withdrawal attempt so a retry after an uncertain network failure carries the same idempotency key. If the key changed on retry, the server would treat it as a new withdrawal request and could create a second payout even though the first request had already succeeded.
+
+**Task 5.2:** The original unique key included `cancelled_at`. MySQL permits multiple `NULL` values in a unique index, so two rows with the same instructor and payout reference were allowed while both had `cancelled_at = NULL`. I added a new forward-only migration rather than changing `001_initial.sql` because the original migration was already applied; editing it would not update the running database and would rewrite migration history.
+
+**Task 7:** Not attempted.
+
+
+## 5. Anything wrong in our brief
+
+I did not identify a contradiction in the written contract. I treated the API contract as authoritative where it differed from implementation behaviour.
 
 ## 6. AI Tool Usage — required
 
@@ -27,6 +41,9 @@
 | 1 | Initial implementation outline and React Query structure | Modified after reviewing the supplied API contract and verifying the running application. |
 | 2 | Initial Axios interceptor, login, and earnings-route structure | Modified after checking the starter auth store and API error contract. |
 | 3 | Initial react-hook-form, Zod, mutation, and idempotency-key implementation outline | Modified after checking the withdrawal API contract and testing error/success paths. |
+| 5 | SQL investigation, migration, and join-query guidance | Reviewed and run against the local MySQL database; output is included in `answers/task-5.md`. |
+| 6 | Structure for incident-diagnosis answers | Reviewed and adapted to explain ordered checks and reasoning. |
+
 
 ### 6b. What you accepted or rejected, and why
 
@@ -55,14 +72,14 @@ I treated `previewExpiresInSeconds` as the time after which the client should re
 
 ## 7. Assumptions and trade-offs
 
-The page refreshes the list at the expiry time rather than only marking it stale and waiting for another user action. This slightly increases requests but makes the expiry behaviour  predictable.
+The withdrawal form accepts amounts in minor units/kobo to match the API contract and avoid decimal-conversion errors within the time limit. The trade-off is weaker usability because instructors naturally think in naira. In production, I would accept naira input, validate a maximum of two decimal places, and safely convert it to an integer minor-unit amount before making the API request.
 
-The form uses minor units directly because the API explicitly models money as integers in minor units. In a production user-facing product, I would likely accept a formatted currency amount and convert it carefully at the edge, with locale-specific input handling and additional accessibility testing.
+The course list automatically refreshes after the server-provided preview expiry. This creates additional requests compared with waiting for another user action, but makes the API freshness contract explicit.
 
 ## 8. If this went to production tomorrow
 
-For the course list, I would add automated tests for loading, transport-error, empty, `null`, and real-zero rendering states. I would also verify the refresh behaviour under slow or intermittent networks.. The implementation trusts the API to return only published courses, as specified by the contract; I would monitor and test that backend permission/filtering rule because the frontend must not be relied on to prevent unpublished-course disclosure.
+I would add automated component and end-to-end tests for course loading/error/empty states, null-versus-zero rendering, login expiry, learner authorization, server validation mapping, successful balance refresh, and idempotency retries.
 
-I would add automated component and end-to-end tests for authentication expiry, learner authorization, server validation mapping, duplicate idempotency-key handling, and uncertain network retries. I would also add better retry UX that explicitly offers a retry with the preserved payout reference rather than relying on the user submitting the form again.
+I would improve the withdrawal user experience by accepting formatted naira input rather than kobo. I would also provide an explicit retry action that visibly reuses the original payout reference after an uncertain network failure.
 
-In a real production UI, I would instead let the instructor enter ₦500.00, validate two decimal places, then safely convert it to 50000 minor units only when sending the request. For this timed assessment, accepting minor units directly is defensible because that is what the API contract explicitly require.
+For the backend, I would add automated authorization and contract tests so a learner cannot access instructor earnings and unpublished courses cannot be exposed by a future query change. I would also ensure forward migrations are automatically applied and checked through the deployment process.

@@ -51,7 +51,8 @@ class BL_Courses_Controller {
                     u.display_name AS instructor_name
                FROM {$table} c
                LEFT JOIN {$users} u ON u.ID = c.instructor_id
-              ORDER BY c.published_at DESC, c.id DESC"
+WHERE c.is_published = 1
+ORDER BY c.published_at DESC, c.id DESC"
         );
 
         $courses = [];
@@ -88,7 +89,7 @@ class BL_Courses_Controller {
 
         $shaped = $this->shape($row);
         $shaped['description'] = $row->description;
-        $shaped['lessonCount'] = (int) ($row->lessons_total ?? 0);
+       $shaped['lessonCount'] = (int) ($row->lesson_count ?? 0);
 
         return new WP_REST_Response($shaped, 200);
     }

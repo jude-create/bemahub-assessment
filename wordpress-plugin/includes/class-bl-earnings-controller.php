@@ -21,7 +21,7 @@ class BL_Earnings_Controller {
         register_rest_route('bemalearn/v1', '/me/earnings', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_earnings'],
-            'permission_callback' => [$this, 'check_authenticated'],
+            'permission_callback' => [$this, 'check_instructor'],
         ]);
 
         register_rest_route('bemalearn/v1', '/me/withdrawals', [
@@ -162,6 +162,14 @@ class BL_Earnings_Controller {
         $user   = BL_Auth::user_from_request($request);
         $amount = (int) $request->get_param('amountMinor');
         $ref    = (string) $request->get_param('payoutReference');
+
+        if ($amount < self::MINIMUM_WITHDRAWAL_MINOR) {
+    return new WP_Error(
+        'below_minimum',
+        'The withdrawal amount is below the minimum allowed.',
+        ['status' => 422]
+    );
+}
 
         $table = $wpdb->prefix . 'bl_withdrawals';
 
